@@ -158,6 +158,7 @@ const config: HardhatUserConfig = {
         // https://github.com/paulrberg/hardhat-template/issues/31
         bytecodeHash: "none",
       },
+      viaIR: true,
       // Disable the optimizer when debugging
       // https://hardhat.org/hardhat-network/#solidity-optimizer-support
       optimizer: {

@@ -34,8 +34,8 @@ importers:
         specifier: ^1.0.0
         version: 1.1.1(hardhat@2.22.8(ts-node@10.9.2(@types/node@18.19.44)(typescript@5.5.4))(typescript@5.5.4))
       '@openzeppelin/contracts':
-        specifier: ^5.0.2
-        version: 5.0.2
+        specifier: ^4.9.2
+        version: 4.9.6
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^4.0.0
         version: 4.3.0(prettier@2.8.8)
@@ -560,6 +560,9 @@ packages:
     resolution: {integrity: sha512-1SUf/Cg2GzGDyaf15aR9St9TWlb+XvbZXWpDx8YKs7MLzMH/BCeopv+y9vzrzgkfykCGuWOlSu3mZhj2+FQcrg==}
     engines: {node: '>=10'}
     deprecated: This functionality has been moved to @npmcli/fs
+
+  '@openzeppelin/contracts@4.9.6':
+    resolution: {integrity: sha512-xSmezSupL+y9VkHZJGDoCBpmnB2ogM13ccaYDWqJTfS3dbuHkgjuwDFUmaFauBCboQMGB/S5UqUl2y54X99BmA==}
 
   '@openzeppelin/contracts@5.0.2':
     resolution: {integrity: sha512-ytPc6eLGcHHnapAZ9S+5qsdomhjo6QBHTDRRBFfTxXIpsicMhVPouPgmUPebZZZGX7vt9USA+Z+0M0dSVtSUEA==}
@@ -1808,7 +1811,7 @@ packages:
 
   imurmurhash@0.1.4:
     resolution: {integrity: sha512-JmXMZ6wuvDmLiHEml9ykzqO6lwFbof0GG4IkcGaENdCRDDmMVnny7s5HsIgHCbaq0w2MyPhDqkhTUgS2LU2PHA==}
-    engines: {node: '>=0.8.19'}
+    engines: {node: '>=0.8.24'}
 
   indent-string@4.0.0:
     resolution: {integrity: sha512-EdDDZu4A2OyIK7Lr/2zG+w5jmbuk1DVBnEwREQvBzspBJkCEbRa8GxU1lghYcaGJCnRWibjDXlq779X1/y5xwg==}
@@ -3756,6 +3759,8 @@ snapshots:
       mkdirp: 1.0.4
       rimraf: 3.0.2
     optional: true
+
+  '@openzeppelin/contracts@4.9.6': {}
 
   '@openzeppelin/contracts@5.0.2': {}
 
