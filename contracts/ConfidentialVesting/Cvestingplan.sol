@@ -1,3 +1,4 @@
+pragma solidity 0.8.24;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "../ERC721Delegate/ERC721Delegate.sol";
@@ -5,7 +6,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../sharedContracts/URIAdmin.sol";
 import "./CvestingStorage.sol";
 import "./CTransferHelper.sol";
-contract TokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard, URIAdmin {
+contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard, URIAdmin {
     using Counters for Counters.Counter;
     Counters.Counter private _planIds;
 
