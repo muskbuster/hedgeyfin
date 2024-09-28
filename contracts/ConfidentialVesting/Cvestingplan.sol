@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../sharedContracts/URIAdmin.sol";
 import "./CvestingStorage.sol";
 import "./CTransferHelper.sol";
+import { EncryptedERC20 } from "contracts/EncryptedERC20.sol";
 contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard, URIAdmin {
     using Counters for Counters.Counter;
     Counters.Counter private _planIds;
@@ -33,12 +34,13 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
         euint64 cliff_ = TFHE.asEuint64(cliff, inputProof);
         require(recipient != address(0), "0_recipient");
         require(token != address(0), "0_token");
-        (euint64 end, ebool valid) = CTimelockLibrary.validateEnd(start_, cliff_, amount_, rate, period);
-        euint64 samount=TFHE.select(valid, amount_ ,TFHE.asEuint64(0));
+        //(euint64 end, ebool valid) = CTimelockLibrary.validateEnd(start_, cliff_, amount_, rate, period);
+     //   euint64 samount=TFHE.select(valid, amount_ ,TFHE.asEuint64(0));
         _planIds.increment();
         newPlanId = _planIds.current();
-        CTransferHelper.transferTokens(token, msg.sender, address(this), samount);
-        plans[newPlanId] = Plan(token, samount, start_, cliff_, rate, period,vestingAdmin);
+        TFHE.allow(amount_,address(token));
+        EncryptedERC20(token).transferFrom(msg.sender, address(this), amount_);
+        plans[newPlanId] = Plan(token,amount_ , start_, cliff_, rate, period,vestingAdmin);
         _safeMint(recipient, newPlanId);
     }
 
