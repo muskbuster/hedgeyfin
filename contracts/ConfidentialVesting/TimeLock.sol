@@ -38,9 +38,11 @@ library CTimelockLibrary {
 
         // end = (amount % rate == 0) ? (amount / rate) * period + start : ((amount / rate) * period) + period + start;
         end = endDate(start, amount, rate, period);
+        TFHE.allow(end,address(this));
         // require(cliff <= end, "cliff > end");
         euint64 num = TFHE.select(TFHE.and(all, TFHE.le(cliff, end)), TFHE.asEuint64(0), TFHE.asEuint64(1));
         valid = TFHE.eq(num, TFHE.asEuint64(0));
+        TFHE.allow(valid,address(this));
     }
 
     /// @notice function to calculate the unlocked (claimable) balance, still locked balance, and the most recent timestamp the unlock would take place
@@ -61,20 +63,49 @@ library CTimelockLibrary {
         uint256 period,
         uint256 currentTime,
         uint256 redemptionTime
-    ) internal  returns (euint64 unlockedBalance, euint64 lockedBalance, euint64 unlockTime) {
-
+    ) internal returns (euint64 unlockedBalance, euint64 lockedBalance, euint64 unlockTime) {
+        
+        TFHE.allow(start, address(this));
+        TFHE.allow(cliffDate, address(this));
+        TFHE.allow(amount, address(this));
+    
+        TFHE.allow(TFHE.asEuint64(currentTime), address(this));
+        TFHE.allow(TFHE.asEuint64(rate), address(this));
+        TFHE.allow(TFHE.asEuint64(redemptionTime), address(this));
+        TFHE.allow(TFHE.asEuint64(period), address(this));
+    
+       
         ebool time = TFHE.gt(start, TFHE.asEuint64(currentTime));
+        TFHE.allow(time, address(this));
+    
         ebool cliff = TFHE.gt(cliffDate, TFHE.asEuint64(currentTime));
+        TFHE.allow(cliff, address(this));
+    
         ebool redemption = TFHE.le(TFHE.asEuint64(redemptionTime), start);
+        TFHE.allow(redemption, address(this));
+    
         ebool all = TFHE.or(TFHE.or(time, cliff), redemption);
-
+        TFHE.allow(all, address(this));
+    
+       
         euint64 periodsElapsed = TFHE.div(TFHE.sub(TFHE.asEuint64(redemptionTime), start), uint64(period));
+        TFHE.allow(periodsElapsed, address(this));
+    
+      
         euint64 calculatedBalance = TFHE.mul(periodsElapsed, TFHE.asEuint64(rate));
-
+        TFHE.allow(calculatedBalance, address(this));
+    
+      
         unlockedBalance = TFHE.select(all, TFHE.asEuint64(0), TFHE.min(calculatedBalance, amount));
+        TFHE.allow(unlockedBalance, address(this));
+    
         lockedBalance = TFHE.select(all, amount, TFHE.sub(amount, unlockedBalance));
+        TFHE.allow(lockedBalance, address(this));
+    
         unlockTime = TFHE.select(all, start, TFHE.add(start, TFHE.mul(TFHE.asEuint64(period), periodsElapsed)));
+        TFHE.allow(unlockTime, address(this));
     }
+    
 
     // function calculateCombinedRate(
     //     euint64 combinedAmount,

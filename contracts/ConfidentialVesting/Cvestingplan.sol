@@ -34,13 +34,13 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
         euint64 cliff_ = TFHE.asEuint64(cliff, inputProof);
         require(recipient != address(0), "0_recipient");
         require(token != address(0), "0_token");
-        //(euint64 end, ebool valid) = CTimelockLibrary.validateEnd(start_, cliff_, amount_, rate, period);
-     //   euint64 samount=TFHE.select(valid, amount_ ,TFHE.asEuint64(0));
+        (euint64 end, ebool valid) = CTimelockLibrary.validateEnd(start_, cliff_, amount_, rate, period);
+        //   euint64 samount=TFHE.select(valid, amount_ ,TFHE.asEuint64(0));
         _planIds.increment();
         newPlanId = _planIds.current();
-        TFHE.allow(amount_,address(token));
+        TFHE.allow(amount_, address(token));
         EncryptedERC20(token).transferFrom(msg.sender, address(this), amount_);
-        plans[newPlanId] = Plan(token,amount_ , start_, cliff_, rate, period,vestingAdmin);
+        plans[newPlanId] = Plan(token, amount_, start_, cliff_, rate, period, vestingAdmin);
         _safeMint(recipient, newPlanId);
     }
 
@@ -55,26 +55,30 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
     }
 
     function _redeemPlans(uint256[] memory planIds, uint256 redemptionTime) internal {
+    
         for (uint256 i; i < planIds.length; i++) {
             (euint64 balance, euint64 remainder, euint64 latestUnlock) = planBalanceOf(
                 planIds[i],
                 block.timestamp,
                 redemptionTime
             );
-           _redeemPlan(planIds[i], balance, remainder, latestUnlock);
+            TFHE.allow(balance, address(this));
+            TFHE.allow(remainder, address(this));
+            TFHE.allow(latestUnlock, address(this));
+            _redeemPlan(planIds[i], balance, remainder, latestUnlock);
         }
     }
-
+    
 
     function _redeemPlan(uint256 planId, euint64 balance, euint64 remainder, euint64 latestUnlock) internal {
         require(ownerOf(planId) == msg.sender, "!owner");
         address token = plans[planId].token;
-            plans[planId].amount = remainder;
-            plans[planId].start = latestUnlock;
-            CTransferHelper.withdrawTokens(token, msg.sender, balance);
-       // emit PlanRedeemed(planId, balance, remainder, latestUnlock);
+        plans[planId].amount = remainder;
+        plans[planId].start = latestUnlock;
+        TFHE.allow(balance, token);
+        CTransferHelper.withdrawTokens(token, msg.sender, balance);
+        // emit PlanRedeemed(planId, balance, remainder, latestUnlock);
     }
-
 
     //delegate functionality
 
@@ -106,7 +110,7 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
         }
     }
 
-    function lockedBalances(address holder, address token) external  returns (euint64 lockedBalance) {
+    function lockedBalances(address holder, address token) external returns (euint64 lockedBalance) {
         uint256 holdersBalance = balanceOf(holder);
         for (uint256 i; i < holdersBalance; i++) {
             uint256 planId = tokenOfOwnerByIndex(holder, i);
@@ -122,17 +126,14 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
     /// by default all NFTs are self-delegated when they are minted.
     /// @param delegatee is the address of the delegate where NFTs have been delegated to
     /// @param token is the address of the ERC20 token that is locked in vesting plans and has been delegated
-    function delegatedBalances(address delegatee, address token) external  returns (euint64 delegatedBalance) {
+    function delegatedBalances(address delegatee, address token) external returns (euint64 delegatedBalance) {
         uint256 delegateBalance = balanceOfDelegate(delegatee);
         for (uint256 i; i < delegateBalance; i++) {
             uint256 planId = tokenOfDelegateByIndex(delegatee, i);
             Plan memory plan = plans[planId];
             if (token == plan.token) {
-                delegatedBalance  = TFHE.add(plan.amount, delegatedBalance);
+                delegatedBalance = TFHE.add(plan.amount, delegatedBalance);
             }
         }
     }
-
-
-
 }

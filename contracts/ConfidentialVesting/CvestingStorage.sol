@@ -28,8 +28,16 @@ contract CVestingStorage {
         uint256 planId,
         uint256 timeStamp,
         uint256 redemptionTime
-    ) public  returns (euint64 balance, euint64 remainder, euint64 latestUnlock) {
+    ) public returns (euint64 balance, euint64 remainder, euint64 latestUnlock) {
+        // Fetch the plan from storage
         Plan memory plan = plans[planId];
+        
+        // Allow contract access to the encrypted variables of the Plan
+        TFHE.allow(plan.start, address(this));
+        TFHE.allow(plan.cliff, address(this));
+        TFHE.allow(plan.amount, address(this));
+    
+        // Call balanceAtTime from CTimelockLibrary and allow access to the returned encrypted variables
         (balance, remainder, latestUnlock) = CTimelockLibrary.balanceAtTime(
             plan.start,
             plan.cliff,
@@ -39,8 +47,13 @@ contract CVestingStorage {
             timeStamp,
             redemptionTime
         );
-        
+    
+        // Allow contract access to the returned encrypted values
+        TFHE.allow(balance, address(this));
+        TFHE.allow(remainder, address(this));
+        TFHE.allow(latestUnlock, address(this));
     }
+    
     function planEnd(uint256 planId) public  returns (euint64 end) {
         Plan memory plan = plans[planId];
         end = CTimelockLibrary.endDate(plan.start, plan.amount, plan.rate, plan.period);
