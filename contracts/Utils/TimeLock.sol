@@ -35,11 +35,8 @@ library CTimelockLibrary {
         ebool req3 = TFHE.le(TFHE.asEuint64(rate), amount);
         ebool req4 = TFHE.gt(TFHE.asEuint64(period), TFHE.asEuint64(0));
         ebool all = TFHE.and(TFHE.and(req1, req2), TFHE.and(req3, req4));
-
-        // end = (amount % rate == 0) ? (amount / rate) * period + start : ((amount / rate) * period) + period + start;
         end = endDate(start, amount, rate, period);
         TFHE.allow(end,address(this));
-        // require(cliff <= end, "cliff > end");
         euint64 num = TFHE.select(TFHE.and(all, TFHE.le(cliff, end)), TFHE.asEuint64(0), TFHE.asEuint64(1));
         valid = TFHE.eq(num, TFHE.asEuint64(0));
         TFHE.allow(valid,address(this));

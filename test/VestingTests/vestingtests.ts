@@ -93,7 +93,7 @@ describe("Vesting tests", () => {
   
     // Check allowance and create plan
     const VestingInput = this.instances.alice.createEncryptedInput(this.contractAddress, this.signers.alice.address);
-    VestingInput.add64(1000).add64(0).add64(10);
+    VestingInput.add64(1000).add64(0).add64(1);
     const VestingOutput = VestingInput.encrypt();
   
     const createTx = await this.contract[
@@ -105,7 +105,7 @@ describe("Vesting tests", () => {
       VestingOutput.handles[1],
       VestingOutput.handles[2],
       10,
-      1,
+      100,
       this.signers.bob.address,
       VestingOutput.inputProof,
     );
@@ -164,9 +164,121 @@ describe("Vesting tests", () => {
     );
   
     console.log(balanceBob);
+    
+  });
+
+  it("should delegate tokens to Alice and check delegated balance", async function () {
+    // Step 1: Mint tokens for Alice
+    const transaction = await this.erc20.mint(1000000);
+    await transaction.wait();
+  
+    // Step 2: Approve contract to spend Alice's tokens
+    const inputAlice = this.instances.alice.createEncryptedInput(this.erc20Address, this.signers.alice.address);
+    inputAlice.add64(100000);
+    const encryptedAllowanceAmount = inputAlice.encrypt();
+  
+    const tx = await this.erc20["approve(address,bytes32,bytes)"](
+      this.contractAddress,
+      encryptedAllowanceAmount.handles[0],
+      encryptedAllowanceAmount.inputProof,
+    );
+    await tx.wait();
+  
+    // Step 3: Create vesting plan for Bob using Alice's tokens
+    const VestingInput = this.instances.alice.createEncryptedInput(this.contractAddress, this.signers.alice.address);
+    VestingInput.add64(100000).add64(0).add64(200);  // (amount, releaseTime, duration)
+    const VestingOutput = VestingInput.encrypt();
+  
+    const createTx = await this.contract[
+      "createPlan(address,address,bytes32,bytes32,bytes32,uint256,uint256,address,bytes)"
+    ](
+      this.signers.bob.address,
+      this.erc20,
+      VestingOutput.handles[0],
+      VestingOutput.handles[1],
+      VestingOutput.handles[2],
+      10, // startTime
+      1, // cliffTime
+      this.signers.bob.address,
+      VestingOutput.inputProof,
+    );
+    await createTx.wait();
+  
+  
+    const delegateTx = await this.contract.connect(this.signers.bob).delegateAll(this.erc20Address, this.signers.alice.address);
+    await delegateTx.wait();
+
+    //Delegated Balance Check
   });
   
 
 
-  
+  it("should revoke plan if vesting admin", async function () {
+   //token approval
+    const transaction = await this.erc20.mint(1000000);
+    await transaction.wait();
+    const inputAlice = this.instances.alice.createEncryptedInput(this.erc20Address, this.signers.alice.address);
+    inputAlice.add64(100000);
+    const encryptedAllowanceAmount = inputAlice.encrypt();
+    const tx = await this.erc20["approve(address,bytes32,bytes)"](
+      this.contractAddress,
+      encryptedAllowanceAmount.handles[0],
+      encryptedAllowanceAmount.inputProof,
+    );
+    await tx.wait();
+  //check allowance
+    const VestingInput = this.instances.alice.createEncryptedInput(this.contractAddress, this.signers.alice.address);
+    VestingInput.add64(100000).add64(0).add64(200);
+    const VestingOutput = VestingInput.encrypt();
+    const createTx = await this.contract[
+      "createPlan(address,address,bytes32,bytes32,bytes32,uint256,uint256,address,bytes)"
+    ](
+      this.signers.bob.address,
+      this.erc20,
+      VestingOutput.handles[0],
+      VestingOutput.handles[1],
+      VestingOutput.handles[2],
+      10,
+      1,
+      this.signers.bob.address,
+      VestingOutput.inputProof,
+    );
+    await createTx.wait();
+
+    const { publicKey: publicKeyAlice, privateKey: privateKeyAlice } = this.instances.alice.generateKeypair();
+    const eip712 = this.instances.alice.createEIP712(publicKeyAlice, this.erc20Address);
+    const signatureAlice = await this.signers.alice.signTypedData(
+      eip712.domain,
+      { Reencrypt: eip712.types.Reencrypt },
+      eip712.message,
+    );
+    const balanceHandleAlice2 = await this.erc20.balanceOf(this.signers.alice);
+    const balanceAlice2 = await this.instances.alice.reencrypt(
+      balanceHandleAlice2,
+      privateKeyAlice,
+      publicKeyAlice,
+      signatureAlice.replace("0x", ""),
+      this.erc20Address,
+      this.signers.alice.address,
+    );
+    expect(balanceAlice2).to.equal(1000000-100000); 
+    console.log(balanceAlice2);
+    const plans= await this.contract.plans(1);
+    //const plans2= await this.contract._planIds();
+    console.log(plans);
+   // console.log(plans2);
+   const planIdsToRevoke = [1]; // Assuming the planId is 1
+    console.log("Plan IDs to revoke:", planIdsToRevoke);
+
+    // Step 2: Revoke the plan as Bob
+    const revokeTx = await this.contract.connect(this.signers.bob).revokePlans(planIdsToRevoke);
+    await revokeTx.wait();
+    const balanceHandleBob = await this.erc20.balanceOf(this.signers.bob.address);
+    console.log("Bob's balance handle:", balanceHandleBob.toString());
+
+
+    const plan = await this.contract.plans(1);
+expect(plan.vestingAdmin).to.equal("0x0000000000000000000000000000000000000000");
+});
+
 });

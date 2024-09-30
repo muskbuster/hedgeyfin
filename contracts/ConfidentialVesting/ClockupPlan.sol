@@ -4,10 +4,11 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "../ERC721Delegate/ERC721Delegate.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../sharedContracts/URIAdmin.sol";
-import "../Utils/CvestingStorage.sol";
+import "../Utils/ClockupStorage.sol";
 import "../Utils/CTransferHelper.sol";
 import { EncryptedERC20 } from "contracts/EncryptedERC20.sol";
-contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard, URIAdmin {
+
+contract CTokenLockupPlans is ERC721Delegate, CLockupStorage, ReentrancyGuard, URIAdmin {
     using Counters for Counters.Counter;
     Counters.Counter private _planIds;
 
@@ -26,7 +27,6 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
         einput cliff,
         uint256 rate,
         uint256 period,
-        address vestingAdmin,
         bytes calldata inputProof
     ) external nonReentrant returns (uint256 newPlanId) {
         euint64 amount_ = TFHE.asEuint64(amount, inputProof);
@@ -40,7 +40,7 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
         newPlanId = _planIds.current();
         TFHE.allow(amount_, address(token));
         EncryptedERC20(token).transferFrom(msg.sender, address(this), samount);
-        plans[newPlanId] = Plan(token, samount, start_, cliff_, rate, period, vestingAdmin);
+        plans[newPlanId] = Plan(token, samount, start_, cliff_, rate, period);
         _safeMint(recipient, newPlanId);
     }
 
@@ -111,7 +111,7 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
     }
 
     function lockedBalances(address holder, address token) external returns (euint64 lockedBalance) {
-        uint256 holdersBalance = balanceOf(holder);     
+        uint256 holdersBalance = balanceOf(holder);
         for (uint256 i; i < holdersBalance; i++) {
             uint256 planId = tokenOfOwnerByIndex(holder, i);
             Plan memory plan = plans[planId];
@@ -121,36 +121,20 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
         }
     }
 
-    function revokePlans(uint256[] calldata planIds) external nonReentrant {
-        for (uint256 i; i < planIds.length; i++) {
-            _revokePlan(planIds[i], block.timestamp);
-        }
-    }
-
-    function _revokePlan(uint256 planId, uint256 revokeTime) internal {
-        Plan memory plan = plans[planId];
-        require(msg.sender == plan.vestingAdmin, "!vestingAdmin");
-        (euint64 balance, euint64 remainder, ) = planBalanceOf(planId, block.timestamp, revokeTime);
-            plans[planId].amount = balance;
-            plans[planId].vestingAdmin = address(0);
-        CTransferHelper.withdrawTokens(plan.token, msg.sender, remainder);
-    }
-
     /// @notice this function will pull all of the tokens locked in vesting plans where the NFT has been delegated to a specific delegatee wallet address
     /// this is useful for the snapshot strategy hedgey-delegate, polling this function based on the wallet signed into snapshot
     /// by default all NFTs are self-delegated when they are minted.
     /// @param delegatee is the address of the delegate where NFTs have been delegated to
     /// @param token is the address of the ERC20 token that is locked in vesting plans and has been delegated
-    function delegatedBalances(address delegatee, address token) external  returns (euint64 delegatedBalance) {
+    function delegatedBalances(address delegatee, address token) external returns (euint64 delegatedBalance) {
         uint256 delegateBalance = balanceOfDelegate(delegatee);
         for (uint256 i; i < delegateBalance; i++) {
             uint256 planId = tokenOfDelegateByIndex(delegatee, i);
             Plan memory plan = plans[planId];
             if (token == plan.token) {
                 delegatedBalance = TFHE.add(plan.amount, delegatedBalance);
-                TFHE.allow(delegatedBalance,msg.sender);
-                TFHE.allow(delegatedBalance,address(this));
             }
         }
     }
+
 }

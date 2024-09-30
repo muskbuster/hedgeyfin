@@ -150,33 +150,6 @@ contract TokenVestingPlans is ERC721Delegate, VestingStorage, ReentrancyGuard, U
     /// @dev by default all plans are self delegated, this allows for the owner of a plan to delegate their NFT to a different address. This calls the internal _delegateToken function from ERC721Delegate.sol contract
     /// @param planId is the token Id of the NFT and vesting plan to be delegated
     /// @param delegatee is the address that the plan will be delegated to
-    function delegate(uint256 planId, address delegatee) external {
-        _delegateToken(delegatee, planId);
-    }
-
-    /// @notice functeion to delegate multiple plans to multiple delegates in a single transaction
-    /// @dev this also calls the internal _delegateToken function from ERC721Delegate.sol to delegate an NFT to another wallet.
-    /// @dev this function iterates through the array of plans and delegatees, delegating each individual NFT.
-    /// @param planIds is the array of planIds that will be delegated
-    /// @param delegatees is the array of addresses that each corresponding planId will be delegated to
-    function delegatePlans(uint256[] calldata planIds, address[] calldata delegatees) external nonReentrant {
-        require(planIds.length == delegatees.length, "array error");
-        for (uint256 i; i < planIds.length; i++) {
-            _delegateToken(delegatees[i], planIds[i]);
-        }
-    }
-
-    /// @notice function to delegate all plans related to a specific token to a single delegatee address
-    /// @dev this function pulls the balances of a wallet, checks that the token in the vesting plan matches the token input param, and then delegates it to the delegatee
-    /// @param token is the address of the ERC20 tokens that are locked in the vesting plans desired to be delegated
-    /// @param delegatee is the address of the delegate that all of the NFTs / plans will be delegated to.
-    function delegateAll(address token, address delegatee) external {
-        uint256 balance = balanceOf(msg.sender);
-        for (uint256 i; i < balance; i++) {
-            uint256 planId = tokenOfOwnerByIndex(msg.sender, i);
-            if (plans[planId].token == token) _delegateToken(delegatee, planId);
-        }
-    }
 
     /****CORE INTERNAL FUNCTIONS*********************************************************************************************************************************************/
 
