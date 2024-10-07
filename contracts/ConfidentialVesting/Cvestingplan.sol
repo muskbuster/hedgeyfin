@@ -26,21 +26,21 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
         einput cliff,
         uint256 rate,
         uint256 period,
-        address vestingAdmin,
         bytes calldata inputProof
     ) external nonReentrant returns (uint256 newPlanId) {
         euint64 amount_ = TFHE.asEuint64(amount, inputProof);
         euint64 start_ = TFHE.asEuint64(start, inputProof);
         euint64 cliff_ = TFHE.asEuint64(cliff, inputProof);
-        require(recipient != address(0), "0_recipient");
-        require(token != address(0), "0_token");
-        (euint64 end, ebool valid) = CTimelockLibrary.validateEnd(start_, cliff_, amount_, rate, period);
+        (, ebool valid) = CTimelockLibrary.validateEnd(start_, cliff_, amount_, rate, period);
           euint64 samount=TFHE.select(valid, amount_ ,TFHE.asEuint64(0));
         _planIds.increment();
         newPlanId = _planIds.current();
-        TFHE.allow(amount_, address(token));
+        TFHE.allow(samount, address(token));
         EncryptedERC20(token).transferFrom(msg.sender, address(this), samount);
-        plans[newPlanId] = Plan(token, samount, start_, cliff_, rate, period, vestingAdmin);
+        plans[newPlanId] = Plan(token, samount, start_, cliff_, rate, period);
+        TFHE.allow(plans[newPlanId].start, address(this));
+        TFHE.allow(plans[newPlanId].cliff, address(this));
+        TFHE.allow(plans[newPlanId].amount, address(this));
         _safeMint(recipient, newPlanId);
     }
 
@@ -65,7 +65,7 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
             TFHE.allow(balance, address(this));
             TFHE.allow(remainder, address(this));
             TFHE.allow(latestUnlock, address(this));
-            _redeemPlan(planIds[i], balance, remainder, latestUnlock);
+             _redeemPlan(planIds[i], balance, remainder, latestUnlock);
         }
     }
     
@@ -119,21 +119,6 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
                 lockedBalance = TFHE.add(plan.amount, lockedBalance);
             }
         }
-    }
-
-    function revokePlans(uint256[] calldata planIds) external nonReentrant {
-        for (uint256 i; i < planIds.length; i++) {
-            _revokePlan(planIds[i], block.timestamp);
-        }
-    }
-
-    function _revokePlan(uint256 planId, uint256 revokeTime) internal {
-        Plan memory plan = plans[planId];
-        require(msg.sender == plan.vestingAdmin, "!vestingAdmin");
-        (euint64 balance, euint64 remainder, ) = planBalanceOf(planId, block.timestamp, revokeTime);
-            plans[planId].amount = balance;
-            plans[planId].vestingAdmin = address(0);
-        CTransferHelper.withdrawTokens(plan.token, msg.sender, remainder);
     }
 
     /// @notice this function will pull all of the tokens locked in vesting plans where the NFT has been delegated to a specific delegatee wallet address
