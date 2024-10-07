@@ -16,8 +16,7 @@ library CTimelockLibrary {
         ebool mod = TFHE.eq(TFHE.rem(amount, uint64(rate)), TFHE.asEuint64(0));
         euint64 temp = TFHE.add(start, TFHE.mul(TFHE.asEuint64(period), TFHE.div(amount, uint64(rate))));
         end = TFHE.select(mod, temp, TFHE.add(temp, TFHE.asEuint64(period)));
-        TFHE.allow(end,address(this));
-        TFHE.allow(end,msg.sender);
+         TFHE.allow(end,address(this));
     }
 
     /// @notice function to calculate the end period and validate that the parameters passed in are valid
@@ -27,20 +26,13 @@ library CTimelockLibrary {
         euint64 amount,
         uint256 rate,
         uint256 period
-    ) internal  returns (euint64 end, ebool valid) {
-        // require(amount > 0, "0_amount");
-        // require(rate > 0, "0_rate");
-        // require(rate <= amount, "rate > amount");
-        // require(period > 0, "0_period");
-        ebool req1 = TFHE.gt(amount, TFHE.asEuint64(0));
-        ebool req2 = TFHE.gt(TFHE.asEuint64(rate), TFHE.asEuint64(0));
+    ) internal  returns ( ebool valid) {
         ebool req3 = TFHE.le(TFHE.asEuint64(rate), amount);
         ebool req4 = TFHE.gt(TFHE.asEuint64(period), TFHE.asEuint64(0));
-        ebool all = TFHE.and(TFHE.and(req1, req2), TFHE.and(req3, req4));
-        end = endDate(start, amount, rate, period);
-        TFHE.allow(end,address(this));
+        ebool all = TFHE.and(req3, req4);
+       euint64 end = endDate(start, amount, rate, period);
         euint64 num = TFHE.select(TFHE.and(all, TFHE.le(cliff, end)), TFHE.asEuint64(0), TFHE.asEuint64(1));
-        TFHE.allow(num,address(this));
+        //TFHE.allow(num,address(this));
         valid = TFHE.eq(num, TFHE.asEuint64(0));
         TFHE.allow(valid,address(this));
     }

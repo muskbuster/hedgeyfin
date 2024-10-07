@@ -9,7 +9,7 @@ import "../Utils/CTransferHelper.sol";
 import { EncryptedERC20 } from "contracts/EncryptedERC20.sol";
 contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard, URIAdmin {
     using Counters for Counters.Counter;
-    Counters.Counter private _planIds;
+    Counters.Counter public _planIds;
 
     constructor(string memory name, string memory symbol) ERC721(name, symbol) {
         uriAdmin = msg.sender;
@@ -27,14 +27,14 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
         uint256 rate,
         uint256 period,
         bytes calldata inputProof
-    ) external nonReentrant returns (uint256 newPlanId) {
+    ) external returns (uint256 newPlanId) {
         euint64 amount_ = TFHE.asEuint64(amount, inputProof);
         euint64 start_ = TFHE.asEuint64(start, inputProof);
         euint64 cliff_ = TFHE.asEuint64(cliff, inputProof);
-        (, ebool valid) = CTimelockLibrary.validateEnd(start_, cliff_, amount_, rate, period);
+         (ebool valid) = CTimelockLibrary.validateEnd(start_, cliff_, amount_, rate, period);
           euint64 samount=TFHE.select(valid, amount_ ,TFHE.asEuint64(0));
         _planIds.increment();
-        newPlanId = _planIds.current();
+         newPlanId = _planIds.current();
         TFHE.allow(samount, address(token));
         EncryptedERC20(token).transferFrom(msg.sender, address(this), samount);
         plans[newPlanId] = Plan(token, samount, start_, cliff_, rate, period);
