@@ -138,7 +138,7 @@ const config: HardhatUserConfig = {
         path: "m/44'/60'/0'/0",
       },
     },
-    zama: getChainConfig("zama"),
+    Inco: getChainConfig("Inco"),
     localDev: getChainConfig("local"),
     local: getChainConfig("local"),
     localNetwork1: getChainConfig("localNetwork1"),
