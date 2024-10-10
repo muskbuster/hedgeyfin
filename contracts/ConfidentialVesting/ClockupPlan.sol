@@ -32,9 +32,7 @@ contract CTokenLockupPlans is ERC721Delegate, CLockupStorage, ReentrancyGuard, U
         euint64 amount_ = TFHE.asEuint64(amount, inputProof);
         euint64 start_ = TFHE.asEuint64(start, inputProof);
         euint64 cliff_ = TFHE.asEuint64(cliff, inputProof);
-        require(recipient != address(0), "0_recipient");
-        require(token != address(0), "0_token");
-        (euint64 end, ebool valid) = CTimelockLibrary.validateEnd(start_, cliff_, amount_, rate, period);
+        ( ebool valid) = CTimelockLibrary.validateEnd(start_, cliff_, amount_, rate, period);
           euint64 samount=TFHE.select(valid, amount_ ,TFHE.asEuint64(0));
         _planIds.increment();
         newPlanId = _planIds.current();

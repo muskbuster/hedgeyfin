@@ -10,7 +10,6 @@ contract CVestingStorage {
         euint64 cliff;
         uint256 rate;
         uint256 period;
-        address vestingAdmin;
     }
     mapping(uint256 => Plan) public plans;
     event PlanCreated(
@@ -29,18 +28,21 @@ contract CVestingStorage {
         uint256 timeStamp,
         uint256 redemptionTime
     ) public returns (euint64 balance, euint64 remainder, euint64 latestUnlock) {
-        Plan memory plan = plans[planId];
-        
-        TFHE.allow(plan.start, address(this));
-        TFHE.allow(plan.cliff, address(this));
-        TFHE.allow(plan.amount, address(this));
-    
-        (balance, remainder, latestUnlock) = CTimelockLibrary.balanceAtTime(
-            plan.start,
-            plan.cliff,
-            plan.amount,
-            plan.rate,
-            plan.period,
+        euint64 start= plans[planId].start;
+        euint64 cliff= plans[planId].cliff;
+        euint64 amount= plans[planId].amount;
+        uint256 rate = plans[planId].rate;
+        uint256 period = plans[planId].period;
+         TFHE.allow(start, address(this));
+         TFHE.allow(cliff, address(this));
+         TFHE.allow(amount, address(this));
+        (balance, remainder, latestUnlock) = 
+        CTimelockLibrary.balanceAtTime(
+            start,
+            cliff,
+            amount,
+           rate,
+          period,
             timeStamp,
             redemptionTime
         );
