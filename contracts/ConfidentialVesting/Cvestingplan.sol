@@ -55,7 +55,7 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
     }
 
     function _redeemPlans(uint256[] memory planIds, uint256 redemptionTime) internal {
-    
+
         for (uint256 i; i < planIds.length; i++) {
             (euint64 balance, euint64 remainder, euint64 latestUnlock) = planBalanceOf(
                 planIds[i],
@@ -68,7 +68,11 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
              _redeemPlan(planIds[i], balance, remainder, latestUnlock);
         }
     }
-    
+
+    function redeemPlan(uint256 planId) external {
+        (euint64 balance, euint64 remainder, euint64 latestUnlock) = planBalanceOf(planId, block.timestamp, block.timestamp);
+        _redeemPlan(planId, balance, remainder, latestUnlock);
+    }
 
     function _redeemPlan(uint256 planId, euint64 balance, euint64 remainder, euint64 latestUnlock) internal {
         require(ownerOf(planId) == msg.sender, "!owner");
@@ -111,7 +115,7 @@ contract CTokenVestingPlans is ERC721Delegate, CVestingStorage, ReentrancyGuard,
     }
 
     function lockedBalances(address holder, address token) external returns (euint64 lockedBalance) {
-        uint256 holdersBalance = balanceOf(holder);     
+        uint256 holdersBalance = balanceOf(holder);
         for (uint256 i; i < holdersBalance; i++) {
             uint256 planId = tokenOfOwnerByIndex(holder, i);
             Plan memory plan = plans[planId];
